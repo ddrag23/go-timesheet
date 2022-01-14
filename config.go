@@ -27,6 +27,10 @@ func GenerateConfig() {
 
 func ReadConfig() Config {
 	config := Config{}
+	fileExist := IsFileExist("config.json")
+	if !fileExist {
+		GenerateConfig()
+	}
 	file, err := ioutil.ReadFile("./config.json")
 	if err != nil {
 		panic(err)
