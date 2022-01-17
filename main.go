@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -13,8 +14,12 @@ type users struct {
 	Name  string `json:"name"`
 }
 
+type committer struct {
+	DateCommit time.Time `json:"date"`
+}
 type commit struct {
-	Message string `json:"message"`
+	Committer committer `json:"committer"`
+	Message   string    `json:"message"`
 }
 
 type responseCommit struct {
@@ -22,16 +27,14 @@ type responseCommit struct {
 }
 
 var (
-	baseUrl   string = "https://api.github.com"
-	input     string
-	year, day int
-	month     time.Month
-	resCommit []responseCommit
+	baseUrl                        string = "https://api.github.com"
+	input, sinceDate, untilDate    string
+	year, day, untilYear, untilDay int
+	month, untilMonth              time.Month
+	resCommit                      []responseCommit
 )
 
 func main() {
-	// date := "2022-01-12"
-	// parse, _ := time.Parse("2022-01-12T00:00:00Z", date)
 
 	config := ReadConfig()
 	body := requestApiGithub(config, baseUrl+"/user")
@@ -42,20 +45,31 @@ func main() {
 	PanicIfError(err)
 	fmt.Println("Masukkan repo :")
 	fmt.Scanf("%s", &input)
-	fmt.Println("Masukkan Tahun :")
-	fmt.Scanf("%d", &year)
-	fmt.Println("Masukkan Bulan :")
-	fmt.Scanf("%d", &month)
-	fmt.Println("Masukkan Tanggal :")
-	fmt.Scanf("%d", &day)
-	parse := time.Date(year, month, day, 24, 00, 00, 0, time.UTC).Format("2022-01-12T00:00:00Z")
-	fmt.Println(parse)
-	repo := requestApiGithub(config, baseUrl+"/repos/"+user.Login+"/"+input+"/commits?since="+parse)
+	fmt.Println("Masukkan tanggal : \nExample : 2022-2-1")
+	fmt.Scanf("%s", &sinceDate)
+	dateSince := strings.Split(sinceDate, "-")
+	year = StrToInt(dateSince[0])
+	day = StrToInt(dateSince[2])
+	month = time.Month(StrToInt(dateSince[1]))
+	fmt.Println("Masukkan batas tanggal : \nExample : 2022-3-1")
+	fmt.Scanf("%s", &untilDate)
+	dateUntil := strings.Split(untilDate, "-")
+	untilYear = StrToInt(dateUntil[0])
+	untilDay = StrToInt(dateUntil[2])
+	untilMonth = time.Month(StrToInt(dateUntil[1]))
+	parseSince := time.Date(year, time.Month(month), day-1, 00, 00, 00, 0, time.UTC).Format(time.RFC3339)
+	parseUntil := time.Date(untilYear, untilMonth, untilDay-1, 00, 00, 00, 0, time.Local).Format(time.RFC3339)
+	// tryTime := time.Date(2022, time.Now().Month(), , 00, 00, 00, 0, time.UTC).Format(time.RFC3339)
+	// fmt.Println(tryTime)
+	fmt.Println(parseSince)
+	repo := requestApiGithub(config, baseUrl+"/repos/"+user.Login+"/"+input+"/commits?since="+parseSince+"&until="+parseUntil)
 
 	err = json.Unmarshal(repo, &resCommit)
+	// fmt.Println(string(repo))
 	PanicIfError(err)
 	for _, res := range resCommit {
 		fmt.Println(res.Commit.Message)
+		fmt.Println(res.Commit.Committer.DateCommit)
 	}
 }
 

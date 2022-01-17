@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 )
 
 func PanicIfError(err error) {
@@ -16,4 +17,10 @@ func IsFileExist(filename string) bool {
 		return false
 	}
 	return !fileInfo.IsDir()
+}
+
+func StrToInt(param string) int {
+	result, err := strconv.Atoi(param)
+	PanicIfError(err)
+	return result
 }
